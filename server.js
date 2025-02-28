@@ -32,7 +32,6 @@ const itemSchema = new mongoose.Schema({
     },
     category: {
         type: String,
-        required: [true, "Du behöver ange varans kategori"],
         enum: ["Pussel", "Spel", "Böcker", "Pyssel", "Leksaker", "Ingen kategori"],
         default: "Ingen kategori"
         
@@ -43,7 +42,6 @@ const itemSchema = new mongoose.Schema({
     },
     status: {
         type: Boolean,
-        required: true,
         default: false 
     }
 });
