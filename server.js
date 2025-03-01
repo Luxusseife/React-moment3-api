@@ -1,13 +1,16 @@
-// Inkluderar Express, Cors och Mongoose.
+// Inkluderar Express, Cors, Mongoose, JsonWebtoken och dotenv.
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
-
-// Laddar in .env-fil.
+const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
 // Initialiserar Express.
 const app = express();
+
+// Importerar route för item och ställer in grundläggande sökväg.
+const itemRoutes = require("./routes/itemRoutes");
+app.use("/", itemRoutes);
 
 // Väljer port.
 const port = process.env.PORT || 3001;
@@ -16,157 +19,54 @@ const port = process.env.PORT || 3001;
 app.use(express.json());
 app.use(cors());
 
-// Ansluter till MongoDB.
-mongoose.connect(process.env.DATABASE).then(() => {
+// Ansluter till MongoDB-databasen.
+mongoose.set("strictQuery", false);
+mongoose.connect(process.env.DATABASE)
+// Lyckad anslutning.
+.then(() => { 
     console.log("Ansluten till databasen!");
-// Felmeddelande.
-}).catch((error) => {
-    console.log("Fel uppstod vid anslutning till databasen: " + error);
+})
+// Fel vid anslutning.
+.catch((error) => {
+    console.error("Fel vid anslutning till databasen: " + {error});
 });
 
-// Skapar item-schema för struktur.
-const itemSchema = new mongoose.Schema({
-    name: {
-        type: String,
-        required: [true, "Du behöver ange varans namn"]
-    },
-    category: {
-        type: String,
-        enum: ["Pussel", "Spel", "Böcker", "Pyssel", "Leksaker", "Ingen kategori"],
-        default: "Ingen kategori"
-        
-    },
-    price: {
-        type: Number,
-        required: [true, "Du behöver ange varans pris"]
-    },
-    status: {
-        type: Boolean,
-        default: false 
+// Route för skyddad resurs - Min sida.
+app.get("/mypage", authenticateToken, (req, res) => {
+    res.json({ message: "Du har nu åtkomst till Min sida." })
+});
+
+// Validerar token för åtkomst till skyddad resurs.
+function authenticateToken(req, res, next) {
+    // Hämtar authorization-header.
+    const authHeader = req.headers["authorization"];
+
+    if (!authHeader) {
+        console.log("No Authorization header sent");
+        return res.status(401).json({ message: "Ingen behörighet för Min sida - token saknas." });
     }
-});
 
-// Inkluderar schemat i databasen.
-const Item = mongoose.model("Item", itemSchema);
+    // Om headern finns, extraheras token från den.
+    const token = authHeader && authHeader.split(" ")[1];
 
+    // Kontrollerar om en giltig token finns.
+    if(token == null) return res.status(401).json({ message: "Ingen behörighet för Min sida - token saknas." });
 
-// ROUTING.
+    // Kontrollerar JWT.
+    jwt.verify(token, process.env.JWT_SECRET_KEY, (err, user) => {
+        if(err) return res.status(403).json({ message: "Ingen behörighet för Min sida - ogiltig token." });
 
-// Hämtar in API:et.
-app.get("/api", async (req, res) => {
+        req.user = user;
+        next();
+    });
+}
 
-    res.json({ message: "Välkommen till lagerhanteringssystemet!" });
-});
+// Exporterar JWT-verifiering till authRoutes.
+module.exports = { authenticateToken };
 
-// Hämtar lagrade varor.
-app.get("/item", async (req, res) => {
-    try {
-        let result = await Item.find({});
-
-        // Kontroll av innehåll och meddelande om collection är tom. Resursen finns men är tom!
-        if (result.length === 0) {
-            return res.status(200).json({ message: "Inga varor hittades." });
-
-            // Om varor finns, skrivs dessa ut.
-        } else {
-            return res.json(result);
-        }
-    // Felmeddelande.
-    } catch (error) {
-        return res.status(500).json({ error: "Något gick fel vid hämtning av varor: " + error });
-    }
-});
-
-// Skapar/lagrar en vara.
-app.post("/item", async (req, res) => {
-    try {
-        let result = await Item.create(req.body);
-
-        // Response vid lyckad input-inmatning.
-        return res.json({
-            message: "Varan lades till!",
-            newItem: result
-        });
-    // Felmeddelande.
-    } catch (error) {
-        return res.status(400).json({ error: error.message || "Felaktig inmatning. Prova igen!" });
-    }
-});
-
-// Hämtar specifik vara.
-app.get("/item/:id", async (req, res) => {
-
-    const itemId = req.params.id;
-
-    try {
-        let result = await Item.findById(itemId);
-
-        // Kontroll av innehåll och meddelande om angivet id saknas.
-        if (!result) {
-            return res.status(404).json({ error: "Kunde inte hitta varan med angivet ID." });
-
-        // Om varan med matchande id hittas, skrivs det ut.
-        } else {
-            // Response vid lyckad uppdatering.
-            return res.json({
-                message: "Varan hittades!",
-                foundItem: result
-            });
-        }
-    // Felmeddelande.
-    } catch (error) {
-        return res.status(500).json({ error: "Något gick fel vid hämtning av varan: " + error });
-    }
-});
-
-// Uppdaterar specifik vara.
-app.put("/item/:id", async (req, res) => {
-    try {
-        const itemId = req.params.id;
-        const updatedItem = req.body;
-
-        let result = await Item.findByIdAndUpdate(itemId, updatedItem, { new: true });
-
-        // Kontroll av innehåll och meddelande om angivet id saknas.
-        if (!result) {
-            return res.status(400).json({ error: error.message || "Kunde inte uppdatera varan." });
-        } else {
-            // Response vid lyckad uppdatering.
-            return res.json({
-                message: "Varan uppdaterades!",
-                updatedItem: result
-            });
-        }
-    // Felmeddelande.
-    } catch (error) {
-        return res.status(500).json({ error: "Något gick fel vid uppdatering: " + error });
-    }
-});
-
-// Raderar specifik vara.
-app.delete("/item/:id", async (req, res) => {
-
-    // Raderar med findByIdAndDelete(), kontrollerar innehåll och skriver ut uppdaterad post. 
-    try {
-        const itemId = req.params.id;
-
-        let result = await Item.findByIdAndDelete(itemId);
-
-        // Kontroll av innehåll och meddelande om angivet id saknas.
-        if (!result) {
-            return res.status(404).json({ message: "En vara med detta ID hittas inte." });
-        } else {
-            // Response vid lyckad radering.
-            return res.json({
-                message: "Varan raderades!",
-                deleteItem: result
-            });
-        }
-    // Felmeddelande.
-    } catch (error) {
-        return res.status(500).json({ error: "Något gick fel: " + error });
-    }
-});
+// Importerar route för auth och ställer in grundläggande sökväg.
+const authRoutes = require("./routes/authRoutes");
+app.use("/", authRoutes);
 
 // Startar Express-servern.
 app.listen(port, () => {
