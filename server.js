@@ -32,8 +32,8 @@ mongoose.connect(process.env.DATABASE)
 });
 
 // Route för skyddad resurs - Min sida.
-app.get("/mypage", authenticateToken, (req, res) => {
-    res.json({ message: "Du har nu åtkomst till Min sida." })
+app.get("/admin", authenticateToken, (req, res) => {
+    res.json({ message: "Du har nu åtkomst till admin-gränssnittet." })
 });
 
 // Validerar token för åtkomst till skyddad resurs.
@@ -43,18 +43,18 @@ function authenticateToken(req, res, next) {
 
     if (!authHeader) {
         console.log("No Authorization header sent");
-        return res.status(401).json({ message: "Ingen behörighet för Min sida - token saknas." });
+        return res.status(401).json({ message: "Ingen behörighet för admin-gränssnittet - token saknas." });
     }
 
     // Om headern finns, extraheras token från den.
     const token = authHeader && authHeader.split(" ")[1];
 
     // Kontrollerar om en giltig token finns.
-    if(token == null) return res.status(401).json({ message: "Ingen behörighet för Min sida - token saknas." });
+    if(token == null) return res.status(401).json({ message: "Ingen behörighet för admin-gränssnittet - token saknas." });
 
     // Kontrollerar JWT.
     jwt.verify(token, process.env.JWT_SECRET_KEY, (err, user) => {
-        if(err) return res.status(403).json({ message: "Ingen behörighet för Min sida - ogiltig token." });
+        if(err) return res.status(403).json({ message: "Ingen behörighet för admin-gränssnittet - ogiltig token." });
 
         req.user = user;
         next();
