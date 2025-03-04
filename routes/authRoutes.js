@@ -65,14 +65,9 @@ router.post("/login", async (req, res) => {
             // Skapar JWT-nyckel.
             const payload = { username: username };
             const token = jwt.sign(payload, process.env.JWT_SECRET_KEY, { expiresIn: "1h" });
-            // Skapar svarsinfo.
-            const response = {
-                message: "Lyckad inloggning",
-                user: username,
-                token: token
-            }
+            
             // Skickar svar och token till klienten.
-            res.status(200).json({ response, token });
+            res.status(200).json({ user: { id: user._id, username: user.username }, token });
         }
 
     // Felmeddelande vid serverfel.
