@@ -18,7 +18,7 @@ router.get("/item", async (req, res) => {
 
         // Kontroll av innehåll och meddelande om collection är tom. Resursen finns men är tom!
         if (result.length === 0) {
-            return res.status(200).json({ message: "Inga varor hittades." });
+           return res.status(200).json({ message: "Inga varor hittades." });
 
             // Om varor finns, skrivs dessa ut.
         } else {
@@ -26,7 +26,7 @@ router.get("/item", async (req, res) => {
         }
     // Felmeddelande.
     } catch (error) {
-        return res.status(500).json({ error: "Något gick fel vid hämtning av varor: " + error });
+       return res.status(500).json({ error: "Något gick fel vid hämtning av varor: " + error });
     }
 });
 
