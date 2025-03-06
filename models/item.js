@@ -10,7 +10,7 @@ const itemSchema = new mongoose.Schema({
     },
     category: {
         type: String,
-        enum: ["Pussel", "Spel", "Böcker", "Pyssel", "Leksaker", "Ingen kategori"],
+        enum: ["Pussel", "Spel", "Ingen kategori"],
         default: "Ingen kategori"
     },
     price: {
@@ -19,7 +19,7 @@ const itemSchema = new mongoose.Schema({
     },
     status: {
         type: Boolean,
-        default: false 
+        default: true 
     },
 });
 
