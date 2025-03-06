@@ -21,7 +21,7 @@ app.use("/", itemRoutes);
 
 // Ansluter till MongoDB-databasen.
 mongoose.set("strictQuery", false);
-mongoose.connect(process.env.DATABASE)
+mongoose.connect(process.env.DATABASE_URL)
     // Lyckad anslutning.
     .then(() => {
         console.log("Ansluten till databasen!");
